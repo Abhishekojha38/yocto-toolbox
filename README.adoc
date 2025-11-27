@@ -1,0 +1,197 @@
+= Yocto Commands
+:toc:
+:toclevels: 3
+
+== Setup yocto from scratch
+
+This section explains how to create a workspace, download the Poky (Yocto)
+reference distribution, and prepare a build environment.
+
+[source,bash]
+----
+# Create a new directory named 'yocto-sandbox'
+mkdir yocto-sandbox
+
+# Change the current directory to 'yocto-sandbox'
+cd yocto-sandbox
+----
+
+* **mkdir yocto-sandbox** – Creates a new directory to hold all Yocto sources, build files, and layers.
+* **cd yocto-sandbox** – Enters the project directory.
+
+Clone the Poky repository (Yocto Project reference distribution) with the 'scarthgap' branch:
+
+[source,bash]
+----
+git clone git://git.yoctoproject.org/poky -b scarthgap src/poky
+----
+
+* **git clone** – Downloads the Poky source code.
+* **-b scarthgap** – Checks out the Yocto *Scarthgap* release, ensuring you use a stable version.
+* **src/poky** – Clone destination; putting it under *src* keeps things organized.
+
+
+Setup the cqfd. Copy the `.cqfd` folder from this repo to your project.
+
+Initialize CQFD environment:
+
+[source,bash]
+----
+export CQFD_SHELL=/bin/bash
+cqfd init
+cqfd shell
+source src/poky/oe-init-build-env
+----
+
+== Create your own layer
+
+[source,bash]
+----
+bitbake-layers create-layer ../src/meta-playground
+----
+
+* **bitbake-layers create-layer** – Generates directory structure for a new layer.
+* Creates:
+  - `conf/layer.conf`
+  - `recipes-example/`
+  - Templates for metadata
+
+The layer is created in `../src/` to keep it separate from build output.
+
+=== Initialize Git in Your New Layer
+
+[source,bash]
+----
+git -C ../src/meta-playground/ init
+git -C ../src/meta-playground/ add .
+git -C ../src/meta-playground/ config user.name "abhishek ojha"
+git -C ../src/meta-playground/ config user.email "abhishekojha38@gmail.com"
+git -C ../src/meta-playground/ commit -m "initial commit"
+----
+
+* **git -C <dir>** – Runs git commands inside a directory without cd.
+* You create a clean version-controlled layer to share or reuse.
+
+== Add Layer to bblayers.conf
+
+[source,bash]
+----
+bitbake-layers show-layers
+bitbake-layers add-layer ../src/meta-playground/
+bitbake-layers show-layers
+----
+
+* **show-layers** – Lists currently enabled layers in your build environment.
+* **add-layer** – Appends the layer to `conf/bblayers.conf`.
+
+== Configure Local Build for QEMU x86-64
+
+[source,bash]
+----
+cat << EOF > conf/local.conf
+INHERIT += "buildhistory"
+MACHINE = "qemux86-64"
+DISTRO = "poky-altcfg"
+DISTRO_FEATURES = "systemd pci ext4 ipv4"
+EXTRA_IMAGE_FEATURES += "empty-root-password"
+EOF
+----
+
+=== Build the Image
+
+[source,bash]
+----
+bitbake core-image-minimal
+----
+
+== Save the layer
+
+=== Generate Layer Setup Script
+
+[source,bash]
+----
+bitbake-layers create-layers-setup ../src/meta-playground/
+----
+
+=== Save Build Configuration Template
+
+[source,bash]
+----
+bitbake-layers save-build-conf ../src/meta-playground playground
+----
+
+This stores:
+* local.conf
+* bblayers.conf
+* template metadata
+
+=== Commit the Saved Template
+
+----
+git -C ../src/meta-playground add .
+git -C ../src/meta-playground commit -m "save setup-layers and template"
+----
+
+== How To Use Custom Layer (New Project)
+
+=== Clone the Layer
+
+[source,bash]
+----
+git clone <github.com>/meta-playground
+# OR local copy
+git clone ~/Practice/yocto/yocto-sandbox/src/meta-playground \
+          ~/Practice/yocto/yocto-sandbox2/src/meta-playground
+----
+
+=== Copy CQFD Config Into New Project
+
+[source,bash]
+----
+cd yocto-sandbox2/
+cp .cqfd* . -rf
+----
+
+CQFD must match the original environment to avoid build mismatches.
+
+=== Initialize CQFD
+
+[source,bash]
+----
+export CQFD_SHELL=/bin/bash
+cqfd init
+cqfd shell
+----
+
+=== Run Layer Setup Script
+
+[source,bash]
+----
+./src/meta-playground/setup-layers
+----
+
+This restores:
+* Layer paths
+* Dependencies
+* bblayers.conf content
+
+=== Load Build Environment with Template
+
+[source,bash]
+----
+TEMPLATECONF=$PWD/src/meta-playground/conf/templates/playground \
+    source ./src/poky/oe-init-build-env build-x86
+----
+
+This applies the previously saved build settings automatically.
+
+=== Build Image
+
+[source,bash]
+----
+bitbake core-image-minimal
+----
+
+You now reproduce the exact same build in a clean project.
+
+Refer: https://docs.yoctoproject.org/dev-manual/layers.html#creating-a-general-layer-using-the-bitbake-layers-script
