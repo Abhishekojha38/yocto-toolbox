@@ -4,7 +4,7 @@
 
 == Setup yocto from scratch
 
-This section explains how to create a workspace, download the Poky (Yocto)
+* This section explains how to create a workspace, download the Poky (Yocto)
 reference distribution, and prepare a build environment.
 
 [source,bash]
@@ -16,24 +16,15 @@ mkdir yocto-sandbox
 cd yocto-sandbox
 ----
 
-* **mkdir yocto-sandbox** – Creates a new directory to hold all Yocto sources, build files, and layers.
-* **cd yocto-sandbox** – Enters the project directory.
-
-Clone the Poky repository (Yocto Project reference distribution) with the 'scarthgap' branch:
+* Clone the Poky repository (Yocto Project reference distribution) with the
+'scarthgap' branch:
 
 [source,bash]
 ----
 git clone git://git.yoctoproject.org/poky -b scarthgap src/poky
 ----
 
-* **git clone** – Downloads the Poky source code.
-* **-b scarthgap** – Checks out the Yocto *Scarthgap* release, ensuring you use a stable version.
-* **src/poky** – Clone destination; putting it under *src* keeps things organized.
-
-
-Setup the cqfd. Copy the `.cqfd` folder from this repo to your project.
-
-Initialize CQFD environment:
+* Setup the cqfd. Copy the `.cqfd` folder from this repo to your project.
 
 [source,bash]
 ----
@@ -43,22 +34,16 @@ cqfd shell
 source src/poky/oe-init-build-env
 ----
 
-== Create your own layer
+== Create your own custom layer
+
+* Use `create-layer` option to create the layer.
 
 [source,bash]
 ----
 bitbake-layers create-layer ../src/meta-playground
 ----
 
-* **bitbake-layers create-layer** – Generates directory structure for a new layer.
-* Creates:
-  - `conf/layer.conf`
-  - `recipes-example/`
-  - Templates for metadata
-
-The layer is created in `../src/` to keep it separate from build output.
-
-=== Initialize Git in Your New Layer
+* Initialize Git in Your New Layer
 
 [source,bash]
 ----
@@ -69,10 +54,7 @@ git -C ../src/meta-playground/ config user.email "abhishekojha38@gmail.com"
 git -C ../src/meta-playground/ commit -m "initial commit"
 ----
 
-* **git -C <dir>** – Runs git commands inside a directory without cd.
-* You create a clean version-controlled layer to share or reuse.
-
-== Add Layer to bblayers.conf
+* Add Layer to bblayers.conf
 
 [source,bash]
 ----
@@ -81,10 +63,7 @@ bitbake-layers add-layer ../src/meta-playground/
 bitbake-layers show-layers
 ----
 
-* **show-layers** – Lists currently enabled layers in your build environment.
-* **add-layer** – Appends the layer to `conf/bblayers.conf`.
-
-== Configure Local Build for QEMU x86-64
+* Configure Local Build for QEMU x86-64
 
 [source,bash]
 ----
@@ -92,12 +71,12 @@ cat << EOF > conf/local.conf
 INHERIT += "buildhistory"
 MACHINE = "qemux86-64"
 DISTRO = "poky-altcfg"
-DISTRO_FEATURES = "systemd pci ext4 ipv4"
+DISTRO_FEATURES = "systemd ext4"
 EXTRA_IMAGE_FEATURES += "empty-root-password"
 EOF
 ----
 
-=== Build the Image
+* Build the Image
 
 [source,bash]
 ----
@@ -106,14 +85,14 @@ bitbake core-image-minimal
 
 == Save the layer
 
-=== Generate Layer Setup Script
+* Generate Layer Setup Script
 
 [source,bash]
 ----
 bitbake-layers create-layers-setup ../src/meta-playground/
 ----
 
-=== Save Build Configuration Template
+* Save Build Configuration Template
 
 [source,bash]
 ----
@@ -125,7 +104,7 @@ This stores:
 * bblayers.conf
 * template metadata
 
-=== Commit the Saved Template
+* Commit the Saved Template
 
 ----
 git -C ../src/meta-playground add .
@@ -134,7 +113,7 @@ git -C ../src/meta-playground commit -m "save setup-layers and template"
 
 == How To Use Custom Layer (New Project)
 
-=== Clone the Layer
+* Clone the Layer
 
 [source,bash]
 ----
@@ -144,7 +123,7 @@ git clone ~/Practice/yocto/yocto-sandbox/src/meta-playground \
           ~/Practice/yocto/yocto-sandbox2/src/meta-playground
 ----
 
-=== Copy CQFD Config Into New Project
+* Copy CQFD Config Into New Project
 
 [source,bash]
 ----
@@ -152,9 +131,7 @@ cd yocto-sandbox2/
 cp .cqfd* . -rf
 ----
 
-CQFD must match the original environment to avoid build mismatches.
-
-=== Initialize CQFD
+* Initialize CQFD
 
 [source,bash]
 ----
@@ -163,7 +140,7 @@ cqfd init
 cqfd shell
 ----
 
-=== Run Layer Setup Script
+* Run Layer Setup Script
 
 [source,bash]
 ----
@@ -175,7 +152,7 @@ This restores:
 * Dependencies
 * bblayers.conf content
 
-=== Load Build Environment with Template
+* Load Build Environment with Template
 
 [source,bash]
 ----
@@ -183,9 +160,7 @@ TEMPLATECONF=$PWD/src/meta-playground/conf/templates/playground \
     source ./src/poky/oe-init-build-env build-x86
 ----
 
-This applies the previously saved build settings automatically.
-
-=== Build Image
+* Build Image
 
 [source,bash]
 ----
@@ -194,4 +169,157 @@ bitbake core-image-minimal
 
 You now reproduce the exact same build in a clean project.
 
-Refer: https://docs.yoctoproject.org/dev-manual/layers.html#creating-a-general-layer-using-the-bitbake-layers-script
+== Writing a New Recipe
+
+You can always write a recipe entirely from scratch. However, Yocto provides
+three convenient options to help you get started more quickly:
+
+**devtool add** – Assists in generating a new recipe and sets up a
+development-friendly workspace.
+
+**recipetool create** – Automatically generates a base recipe from the provided
+source files.
+
+**Using Existing Recipes** – Locate an existing recipe with similar functionality
+and modify it to fit your needs.
+
+=== Creating the Base Recipe Using *devtool add*
+
+To quickly create a new recipe in a Yocto development environment, the preferred
+workflow is to use the `devtool` utility.
+
+The following example demonstrates creating a recipe for the **nano** text editor.
+
+* Create the Initial Recipe. Use the `devtool add` command to generate a
+development recipe and fetch the source code:
+
+[source,bash]
+----
+# Generates a temporary recipe at `workspace/recipes/nano/nano_git.bb`.
+devtool add nano https://git.savannah.gnu.org/git/nano.git
+----
+
+* Edit the Temporary Recipe. To modify the automatically generated recipe, use:
+
+[source,bash]
+----
+devtool edit-recipe nano
+----
+
+* Build the Recipe in the Workspace. Build the software using the development
+workspace recipe:
+
+[source,bash]
+----
+devtool build nano
+----
+
+This command runs the entire BitBake workflow (fetch, configure, compile,
+install, package) using the isolated workspace.
+
+* Finalize and Export the Recipe Into Your Layer. Once you confirm that the
+build succeeds and the recipe works as expected, finish the recipe and move it
+into your custom layer:
+
+[source,bash]
+----
+devtool finish nano ../src/meta-playground/
+----
+
+* Output Layer Structure. Below is an example directory layout after
+`devtool finish` writes the recipe into `meta-playground`:
+
+[source,text]
+----
+src/meta-playground/
+├── conf
+│   ├── layer.conf
+│   └── templates
+│       └── playground
+├── COPYING.MIT
+├── README
+:
+├── recipes-nano
+│   └── nano
+│       └── nano_git.bb
+├── setup-layers
+└── setup-layers.json
+----
+
+At this point, `nano_git.bb` is now a permanent part of your layer and can be
+built like any other recipe:
+
+[source,bash]
+----
+bitbake nano
+----
+
+This completes the process of creating a base recipe using `devtool add`.
+
+=== Modify the Base Recipe Using *devtool modify*
+
+* Yocto's `devtool modify` workflow allows you to extract a recipe's source code
+into a workspace, make changes, build the package, test it on a running target,
+and finally integrate it into your layer.
+
+* Modify the Recipe
+
+[source,bash]
+----
+# `nano` recipe is extracted to `workspace/sources/nano/`.
+devtool modify nano
+----
+
+* The source of the `nano` recipe is extracted to `workspace/sources/nano/`.
+
+* Build the Recipe
+
+[source,bash]
+----
+devtool build nano
+----
+
+* Compiles the modified recipe using the development workspace.
+
+* Build a Complete Image with Changes
+
+[source,bash]
+----
+devtool build-image <image-name>
+----
+
+* Replace `<image-name>` with the target image (e.g., `core-image-minimal`).
+
+* Deploy the Recipe to a Running Target
+
+[source,bash]
+----
+devtool deploy-target nano root@192.168.7.2
+----
+
+* Copies the compiled files from the workspace to the running target
+(QEMU or hardware).
+
+* Finish the Recipe
+
+[source,bash]
+----
+devtool finish nano ../src/meta-playground/
+----
+
+* Moves the final recipe into your layer (e.g., `meta-playground`).
+* Converts any local source modifications into patches and updates the recipe
+automatically.
+* Cleans up the temporary workspace used for development.
+
+After this step, your modified recipe becomes a permanent part of your layer and
+can be built normally using BitBake:
+
+[source,bash]
+----
+bitbake nano
+----
+
+
+== References
+* https://docs.yoctoproject.org/ref-manual/index.html
