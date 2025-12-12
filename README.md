@@ -333,7 +333,36 @@ json-c-demo:
 - Build the json-c
 
 ```bash
-bitbake json-c-demo
+$ bitbake json-c-demo
+```
+
+## Development Shell
+
+- When debugging certain commands or even when just editing packages, devshell
+can be a useful tool.
+
+```bash
+$ bitbake -c devshell busybox
+```
+
+- This, a new terminal is opened and you are placed in ${S}, the source directory.
+
+```bash
+# try following commands
+echo $CC
+echo $CFLAGS
+echo $PKG_CONFIG_PATH
+patch -p1 < ~/0001-dummy.patch
+make
+```
+
+- we could also execute the `run.* script` from this terminal
+
+```bash
+$ ../temp/run.do_compile
+
+# This is same as below bitbake command
+$ bitbake -c compile busybox
 ```
 
 ## References
